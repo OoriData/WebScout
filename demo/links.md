@@ -1,0 +1,14 @@
+- https://www.hyperstitionai.com/
+  - tags: ai | literature
+  - action: random-remind
+  - key-quote: "There are many, many stories about how humanity faces its demise at the hands of its own creation: artificial intelligence.…There aren't very many stories detailing a human-AI happily‑ever‑after.…We generate novels, whole-ass eighty-thousand-word books, in which the AI is relentlessly human-loving and unfailingly kind. And, unlike most fiction about AI, this AI doesn't go crazy and betray us in the third act."
+- https://excalidraw.com/
+  - tags: tool | graphics
+  - action: random-remind
+- https://boulderreportinglab.org/feed/
+  - type: rss-feed
+- https://ladybird.org/
+  - action: flag-update
+- https://z-library.sk/
+  - action: random-remind
+  - description: Official Z-Library Project - Free Instant Access to eBooks and Articles
