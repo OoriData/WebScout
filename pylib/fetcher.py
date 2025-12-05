@@ -154,7 +154,9 @@ class Crawl4AIFetcher(WebFetcher):
                                    markdown_data.get('content') or
                                    markdown_data.get('text') or '')
                         if not markdown:
-                            logger.warning('no_markdown_extracted_from_dict', url=url, available_keys=list(markdown_data.keys()))
+                            logger.warning(
+                                'no_markdown_extracted_from_dict',
+                                url=url, available_keys=list(markdown_data.keys()))
                     elif isinstance(markdown_data, str):
                         markdown = markdown_data
                     else:

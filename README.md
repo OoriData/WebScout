@@ -1,6 +1,4 @@
-Web Scout demo
-
-A tool that uses OgbujiPT to monitor and summarize web content. It processes a links file (e.g., `links.md`) based on configurable rules, fetching content from each URL and generating reports with LLM-powered summaries and insights.
+Web Scout is a tool for monitoring and summarizing web content. It processes a links file (e.g., `links.md`) based on configurable rules, fetching content from each URL and generating reports with LLM-powered summaries and insights.
 
 # Features
 
@@ -76,7 +74,7 @@ The dashboard should be at http://localhost:11235/dashboard
 Basic usage with a local LLM endpoint:
 
 ```bash
-python web_scout.py scout \
+webscout \
   --links-file=links.md \
   --output-dir=./output \
   --llm-url=http://localhost:8000 \
@@ -105,7 +103,7 @@ Note: for this config you'll need to install a local LLM server, such as our sis
 Focus on AI-related links only:
 
 ```bash
-python web_scout.py scout \
+webscout \
   --links-file=links.md \
   --focus-tags=ai,tech \
   --output-dir=./output \
@@ -115,7 +113,7 @@ python web_scout.py scout \
 Use Crawl4AI for JavaScript-heavy sites:
 
 ```bash
-python web_scout.py scout \
+webscout \
   --links-file=links.md \
   --fetcher=crawl4ai \
   --output-dir=./output \
@@ -125,7 +123,7 @@ python web_scout.py scout \
 Use fallback fetcher (tries simple first, falls back to Crawl4AI):
 
 ```bash
-python web_scout.py scout \
+webscout \
   --links-file=links.md \
   --fetcher=fallback \
   --output-dir=./output \
@@ -157,9 +155,9 @@ Web Scout generates three main outputs in the specified output directory:
 
 The tool uses a pluggable protocol for web fetching, making it easy to swap different backends:
 
-- **SimpleHttpFetcher**: Uses httpx + OgbujiPT HTML processing (fast, works for most sites)
-- **Crawl4AIFetcher**: Uses Crawl4AI for JavaScript-heavy sites (requires docker service)
-- **FallbackFetcher**: Tries simple first, falls back to Crawl4AI on failure
+- `SimpleHttpFetcher` uses httpx + OgbujiPT HTML processing (fast, works for most sites)
+- `Crawl4AIFetcher` uses Crawl4AI for JavaScript-heavy sites (requires docker service)
+- `FallbackFetcher` tries simple first, falls back to Crawl4AI on failure
 
 New fetchers can be added by implementing the `WebFetcher` protocol.
 
@@ -167,8 +165,8 @@ New fetchers can be added by implementing the `WebFetcher` protocol.
 
 Actions are processed by dedicated handlers:
 
-- **RandomRemindHandler**: Randomly selects entries and generates reminder summaries
-- **FlagUpdateHandler**: Compares cached content with current content, uses LLM to detect substantive changes
+- `RandomRemindHandler` randomly selects entries and generates reminder summaries
+- `FlagUpdateHandler` compares cached content with current content, uses LLM to detect substantive changes
 
 # Testing
 

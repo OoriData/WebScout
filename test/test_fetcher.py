@@ -4,7 +4,7 @@ Quick test of the fetcher functionality.
 '''
 
 import asyncio
-from fetcher import SimpleHttpFetcher
+from webscout.fetcher import SimpleHttpFetcher
 
 
 async def test_fetcher():
@@ -23,7 +23,7 @@ async def test_fetcher():
     if result.success:
         print(f'Title: {result.title}')
         print(f'Markdown length: {len(result.markdown)} characters')
-        print(f'\nFirst 300 characters of markdown:')
+        print('\nFirst 300 characters of markdown:')
         print('-' * 80)
         print(result.markdown[:300])
         print('-' * 80)

@@ -8,9 +8,9 @@ from pathlib import Path
 from datetime import datetime
 from collections import defaultdict
 
-from parser import LinkEntry
-from actions import ActionResult
-from fetcher import FetchResult
+from webscout.parser import LinkEntry
+from webscout.actions import ActionResult
+from webscout.fetcher import FetchResult
 
 
 class ReportGenerator:
@@ -106,7 +106,7 @@ class ReportGenerator:
         # Count fetch successes/failures
         success_count = sum(1 for r in fetch_results.values() if r.success)
         failure_count = len(fetch_results) - success_count
-        lines.append(f'Fetch results:')
+        lines.append('Fetch results:')
         lines.append(f'  - Successful: {success_count}')
         if failure_count > 0:
             lines.append(f'  - Failed: {failure_count}')

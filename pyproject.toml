@@ -1,0 +1,189 @@
+[build-system]
+requires = ['hatchling']
+build-backend = 'hatchling.build'
+
+[project]
+name = 'webscout'
+dynamic = ['version']
+description = 'A tool for monitoring and summarizing web content using LLMs'
+readme = 'README.md'
+requires-python = '>=3.12'
+license = 'Apache-2.0'
+keywords = ['llm', 'web', 'scraping', 'monitoring', 'knowledge-graph', 'onya']
+authors = [
+    { name = 'Uche Ogbuji', email = 'uche@oori.dev' },
+]
+classifiers = [
+    'Development Status :: 3 - Alpha',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
+    'Programming Language :: Python :: Implementation :: CPython',
+    'Operating System :: OS Independent',
+    'License :: OSI Approved :: Apache Software License',
+    'Topic :: Internet :: WWW/HTTP',
+    'Topic :: Text Processing :: Markup :: HTML',
+]
+dependencies = [
+    'ogbujipt>=0.9.3',  # For LLM wrappers and HTML processing
+    'httpx>=0.27.2',  # Async HTTP client
+    'structlog',  # Structured logging
+    'fire',  # CLI framework
+    'selectolax',  # Fast HTML parsing
+    'cssutils',  # CSS selector support
+    'wordloom',  # For loading prompts from TOML files
+]
+
+[project.optional-dependencies]
+# Extra requirements for project contributors & other developers
+dev = [
+    'build',
+    'twine',
+    'hatch',
+    'pipdeptree',
+    'ruff',
+    'pytest',
+    'pytest-mock',
+    'pytest-asyncio',
+    'pytest-httpx',
+]
+
+[project.urls]
+Documentation = 'https://github.com/OoriData/WebScout#readme'
+Issues = 'https://github.com/OoriData/WebScout/issues'
+Source = 'https://github.com/OoriData/WebScout'
+
+[tool.hatch.version]
+path = 'pylib/__about__.py'
+
+# Package configuration
+[tool.hatch.build.targets.wheel]
+only-include = ['pylib', 'resource']
+
+[tool.hatch.build.targets.wheel.sources]
+'pylib' = 'webscout'
+'resource' = 'webscout/resource'
+
+[tool.hatch.build.targets.sdist]
+only-include = [
+    'pylib',
+    'resource',
+    'demo',
+    'test',
+    'README.md',
+    'LICENSE',
+    'pyproject.toml',
+]
+
+[project.scripts]
+webscout = 'webscout.cli.scout:main'
+
+# Hatch environments config
+[tool.hatch.envs.default]
+dependencies = [
+    'coverage[toml]>=6.5',
+    'pytest',
+    'pytest-mock',
+    'pytest-httpx',
+    'pytest-asyncio',
+]
+dev-mode = false
+
+[tool.hatch.envs.default.scripts]
+test = 'pytest {args:test}'
+test-cov = 'coverage run -m pytest {args:test}'
+cov-report = [
+    '- coverage combine',
+    'coverage report',
+]
+cov = [
+    'test-cov',
+    'cov-report',
+]
+
+[[tool.hatch.envs.all.matrix]]
+python = ['3.12', '3.13']
+
+[tool.hatch.envs.lint]
+detached = true
+dependencies = [
+    'black>=23.1.0',
+    'mypy>=1.0.0',
+    'ruff>=0.0.243',
+]
+[tool.hatch.envs.lint.scripts]
+typing = 'mypy --install-types --non-interactive {args:pylib/webscout test}'
+style = [
+    'ruff {args:.}',
+    'black --check --diff {args:.}',
+]
+fmt = [
+    'black {args:.}',
+    'ruff --fix {args:.}',
+    'style',
+]
+all = [
+    'style',
+    'typing',
+]
+
+[tool.black]
+target-version = ['py312']
+line-length = 120
+skip-string-normalization = true
+
+[tool.ruff]
+target-version = 'py312'
+line-length = 120
+lint.select = ['E', 'F']
+lint.ignore = [
+    # Allow non-abstract empty methods in abstract base classes
+    'B027',
+    # Allow boolean positional values in function calls, like `dict.get(... True)`
+    'FBT003',
+    # Ignore checks for possible passwords
+    'S105', 'S106', 'S107',
+    # Ignore complexity
+    'C901', 'PLR0911', 'PLR0912', 'PLR0913', 'PLR0915',
+]
+lint.unfixable = [
+    # Don't touch unused imports
+    'F401',
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ['webscout']
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = 'all'
+
+[tool.ruff.lint.per-file-ignores]
+# Tests can use magic values, assertions, and relative imports
+'test/**/*' = ['PLR2004', 'S101', 'TID252']
+# Ignore `E402` (import violations) in all `__init__.py` files
+'__init__.py' = ['E402']
+# Ignore `D` rules everywhere except for the pylib directory
+'!pylib/**.py' = ['D']
+
+[tool.coverage.run]
+source_pkgs = ['webscout', 'test']
+branch = true
+parallel = true
+omit = [
+    'pylib/__about__.py',
+]
+
+[tool.coverage.paths]
+webscout = ['pylib', '*/pylib']
+test = ['test', '*/test']
+
+[tool.coverage.report]
+exclude_lines = [
+    'no cov',
+    'if __name__ == .__main__.:',
+    'if TYPE_CHECKING:',
+]
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = 'session'
+addopts = '-v'

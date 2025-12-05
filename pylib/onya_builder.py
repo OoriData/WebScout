@@ -10,8 +10,8 @@ import re
 
 from ogbujipt.llm.wrapper import prompt_to_chat
 
-from parser import LinkEntry
-from fetcher import FetchResult
+from webscout.parser import LinkEntry
+from webscout.fetcher import FetchResult
 
 
 def sanitize_node_id(url: str) -> str:
@@ -180,7 +180,8 @@ class OnyaGraphBuilder:
             # Truncate content for LLM (first 2500 chars)
             content = fetch_result.markdown[:2500]
 
-            prompt = f'''Analyze this web page and create a concise 1-2 sentence summary capturing its main topic and purpose.
+            prompt = f'''\
+Analyze this web page and create a concise 1-2 sentence summary capturing its main topic and purpose.
 
 URL: {entry.url}
 Title: {fetch_result.title or entry.title or 'Untitled'}

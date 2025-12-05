@@ -10,13 +10,150 @@ import random
 import hashlib
 import json
 from pathlib import Path
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass  # , asdict
 from datetime import datetime
 
-from ogbujipt.llm.wrapper import openai_chat_api, prompt_to_chat
+import wordloom
+from ogbujipt.llm.wrapper import prompt_to_chat  # , openai_chat_api
 
-from parser import LinkEntry
-from fetcher import FetchResult
+from webscout.parser import LinkEntry
+from webscout.fetcher import FetchResult
+
+
+def _format_llm_error(exception: Exception, action_context: str = '') -> str:
+    '''
+    Format LLM API errors with specific error types.
+
+    Args:
+        exception: The exception that was raised
+        action_context: Context about what action was being performed
+
+    Returns:
+        Formatted error message with specific error type
+    '''
+    error_str = str(exception)
+    error_type = type(exception).__name__
+
+    # Check for httpx exceptions (commonly used by ogbujipt)
+    try:
+        import httpx
+        if isinstance(exception, httpx.ConnectError):
+            return f'LLM connection failed: Cannot reach LLM server. Check if the server is running and the URL is correct.'
+        elif isinstance(exception, httpx.ConnectTimeout):
+            return f'LLM connection timeout: Could not establish connection to LLM server within timeout period.'
+        elif isinstance(exception, httpx.TimeoutException):
+            return f'LLM request timeout: Request to LLM server timed out. The server may be overloaded or slow.'
+        elif isinstance(exception, httpx.HTTPStatusError):
+            status_code = exception.response.status_code if hasattr(exception, 'response') else None
+            if status_code == 401:
+                return f'LLM authentication error (401): Invalid or missing API key. Check your API credentials.'
+            elif status_code == 403:
+                return f'LLM authorization error (403): Access forbidden. Check API key permissions.'
+            elif status_code == 404:
+                return f'LLM endpoint not found (404): The model or endpoint does not exist. Check model name and API URL.'
+            elif status_code == 429:
+                return f'LLM rate limit exceeded (429): Too many requests. Please wait before retrying.'
+            elif status_code == 500:
+                return f'LLM server error (500): Internal server error on LLM provider side.'
+            elif status_code == 502:
+                return f'LLM bad gateway (502): LLM provider gateway error. The service may be temporarily unavailable.'
+            elif status_code == 503:
+                return f'LLM service unavailable (503): LLM service is temporarily unavailable. Try again later.'
+            elif status_code == 504:
+                return f'LLM gateway timeout (504): LLM provider gateway timed out.'
+            elif status_code:
+                return f'LLM HTTP error ({status_code}): {error_str}'
+            else:
+                return f'LLM HTTP error: {error_str}'
+        elif isinstance(exception, httpx.RequestError):
+            return f'LLM request error: {error_str}'
+    except ImportError:
+        # httpx not available, fall through to generic handling
+        pass
+
+    # Check for common error patterns in error messages
+    error_lower = error_str.lower()
+    
+    if 'connection' in error_lower or 'connect' in error_lower:
+        if 'refused' in error_lower or 'cannot' in error_lower or "can't" in error_lower:
+            return f'LLM connection refused: Cannot reach LLM server. Check if the server is running and the URL is correct.'
+        elif 'timeout' in error_lower:
+            return f'LLM connection timeout: Could not establish connection to LLM server within timeout period.'
+        else:
+            return f'LLM connection error: {error_str}'
+    
+    if 'timeout' in error_lower:
+        return f'LLM timeout: Request to LLM server timed out. The server may be overloaded or slow.'
+    
+    if '401' in error_str or 'unauthorized' in error_lower:
+        return f'LLM authentication error (401): Invalid or missing API key. Check your API credentials.'
+    
+    if '403' in error_str or 'forbidden' in error_lower:
+        return f'LLM authorization error (403): Access forbidden. Check API key permissions.'
+    
+    if '404' in error_str or 'not found' in error_lower:
+        return f'LLM endpoint not found (404): The model or endpoint does not exist. Check model name and API URL.'
+    
+    if '429' in error_str or 'rate limit' in error_lower:
+        return f'LLM rate limit exceeded (429): Too many requests. Please wait before retrying.'
+    
+    if '500' in error_str or 'internal server error' in error_lower:
+        return f'LLM server error (500): Internal server error on LLM provider side.'
+    
+    if '502' in error_str or 'bad gateway' in error_lower:
+        return f'LLM bad gateway (502): LLM provider gateway error. The service may be temporarily unavailable.'
+    
+    if '503' in error_str or 'service unavailable' in error_lower:
+        return f'LLM service unavailable (503): LLM service is temporarily unavailable. Try again later.'
+    
+    if '504' in error_str or 'gateway timeout' in error_lower:
+        return f'LLM gateway timeout (504): LLM provider gateway timed out.'
+    
+    # Generic fallback
+    return f'LLM API error ({error_type}): {error_str}'
+
+
+def _get_resource_path() -> Path:
+    '''Get the path to the resource directory at runtime.'''
+    # Try using importlib.resources first (works for installed packages)
+    try:
+        import importlib.resources
+        with importlib.resources.path('webscout.resource', 'language.toml') as p:
+            return Path(p)
+    except (ModuleNotFoundError, TypeError, ValueError):
+        pass
+
+    # Fallback: try relative to package directory (for installed packages)
+    # In installed package, resources are at webscout/resource/language.toml
+    try:
+        import sys
+        package_module = sys.modules.get('webscout')
+        if package_module and hasattr(package_module, '__file__') and package_module.__file__:
+            package_dir = Path(package_module.__file__).parent
+            resource_path = package_dir / 'resource' / 'language.toml'
+            if resource_path.exists():
+                return resource_path
+    except Exception:
+        pass
+
+    # Last resort: try relative to current file (for development)
+    resource_path = Path(__file__).parent.parent.parent / 'resource' / 'language.toml'
+    if resource_path.exists():
+        return resource_path
+
+    raise FileNotFoundError('Could not locate resource/language.toml')
+
+
+def _load_prompts():
+    '''Load prompts from Word Loom resource file.'''
+    resource_path = _get_resource_path()
+    with open(resource_path, 'rb') as f:
+        loom = wordloom.load(f)
+    return loom
+
+
+# Load prompts at module level
+_PROMPTS = _load_prompts()
 
 
 @dataclass
@@ -94,15 +231,9 @@ class RandomRemindHandler:
 
                 context = '\n'.join(context_parts)
 
-                prompt = f'''Based on this web page content and context, create a concise reminder summary (2-3 sentences) about why this page might be of ongoing interest.
-
-Context:
-{context}
-
-Page Content:
-{content}
-
-Generate a friendly reminder that captures the essence of why someone flagged this page for ongoing interest.'''
+                # Load prompt template from Word Loom
+                prompt_template = _PROMPTS['random-remind-prompt']
+                prompt = str(prompt_template).format(context=context, content=content)
 
                 messages = prompt_to_chat(prompt)
                 response = await self.llm(messages, max_tokens=200, temperature=0.7)
@@ -118,11 +249,12 @@ Generate a friendly reminder that captures the essence of why someone flagged th
                 ))
 
             except Exception as e:
+                error_msg = _format_llm_error(e, 'summary generation')
                 results.append(ActionResult(
                     entry=entry,
                     action='random-remind',
                     status='error',
-                    message=f'Failed to generate summary: {str(e)}'
+                    message=f'Failed to generate summary: {error_msg}'
                 ))
 
         return results
@@ -230,34 +362,13 @@ class FlagUpdateHandler:
                     ))
                     continue
 
-                # Use LLM to determine if changes are substantive
-                prompt = f'''Compare these two versions of a web page and determine if there are substantive changes.
-
-Substantive changes include:
-- New content, articles, or major updates
-- Significant changes to existing content
-- Important announcements or news
-
-Non-substantive changes include:
-- Minor wording tweaks
-- Formatting changes
-- Advertisements or navigation changes
-- Timestamp updates
-
-Previous version (from {cached['timestamp']}):
-{old_content}
-
-Current version:
-{new_content}
-
-Respond with:
-1. "SUBSTANTIVE" or "MINOR" as the first word
-2. If substantive, provide a brief summary (2-3 sentences) of the key changes
-
-Example responses:
-"SUBSTANTIVE - The site announced a new version 2.0 release with significant feature updates including..."
-"MINOR - Only formatting and navigation changes detected."
-'''
+                # Load prompt template from Word Loom
+                prompt_template = _PROMPTS['flag-update-prompt']
+                prompt = str(prompt_template).format(
+                    previous_timestamp=cached['timestamp'],
+                    old_content=old_content,
+                    new_content=new_content
+                )
 
                 messages = prompt_to_chat(prompt)
                 response = await self.llm(messages, max_tokens=250, temperature=0.5)
@@ -287,11 +398,12 @@ Example responses:
                     ))
 
             except Exception as e:
+                error_msg = _format_llm_error(e, 'update detection')
                 results.append(ActionResult(
                     entry=entry,
                     action='flag-update',
                     status='error',
-                    message=f'Error processing update: {str(e)}'
+                    message=f'Error processing update: {error_msg}'
                 ))
 
         return results
@@ -314,7 +426,8 @@ class ActionProcessor:
         self.random_remind_handler = RandomRemindHandler(llm_wrapper, random_remind_count)
         self.flag_update_handler = FlagUpdateHandler(llm_wrapper, cache_dir)
 
-    async def process_all(self, entries_with_results: list[tuple[LinkEntry, FetchResult]]) -> dict[str, list[ActionResult]]:
+    async def process_all(self, entries_with_results: list[tuple[LinkEntry, FetchResult]]) \
+        -> dict[str, list[ActionResult]]:
         '''
         Process all entries according to their actions.
 
