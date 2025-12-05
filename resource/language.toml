@@ -1,0 +1,50 @@
+# resource/language.toml
+# Word loom format. Top level lang is default for this file
+# https://github.com/OoriData/WordLoom
+lang = "en"
+
+[random-remind-prompt]
+_ = """
+Based on this web page content and context,
+create a concise reminder summary (2-3 sentences) about why this page might be of ongoing interest.
+
+Context:
+{context}
+
+Page Content:
+{content}
+
+Generate a friendly reminder that captures the essence of why someone flagged this page for ongoing interest.
+"""
+_m = ['context', 'content']
+
+[flag-update-prompt]
+_ = """
+Compare these two versions of a web page and determine if there are substantive changes.
+
+Substantive changes include:
+- New content, articles, or major updates
+- Significant changes to existing content
+- Important announcements or news
+
+Non-substantive changes include:
+- Minor wording tweaks
+- Formatting changes
+- Advertisements or navigation changes
+- Timestamp updates
+
+Previous version (from {previous_timestamp}):
+{old_content}
+
+Current version:
+{new_content}
+
+Respond with:
+1. "SUBSTANTIVE" or "MINOR" as the first word
+2. If substantive, provide a brief summary (2-3 sentences) of the key changes
+
+Example responses:
+"SUBSTANTIVE - The site announced a new version 2.0 release with significant feature updates including..."
+"MINOR - Only formatting and navigation changes detected."
+"""
+_m = ['previous_timestamp', 'old_content', 'new_content']
