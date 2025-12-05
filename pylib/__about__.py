@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2025-present Oori Data <info@oori.dev>
 # SPDX-License-Identifier: Apache-2.0
-# webscout.__about__
+# ooriscout.__about__
 
 __version__ = '0.1.0'

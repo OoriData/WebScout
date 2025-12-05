@@ -3,7 +3,7 @@
 Quick test of the parser functionality.
 '''
 
-from webscout.parser import parse_links_file, filter_entries_by_tags
+from ooriscout.parser import parse_links_file, filter_entries_by_tags
 
 
 def test_parser():
@@ -43,7 +43,7 @@ def test_parser():
         print(f'  - {entry.url}')
 
     # Test action filtering
-    from webscout.parser import filter_entries_by_action
+    from ooriscout.parser import filter_entries_by_action
 
     remind_entries = filter_entries_by_action(entries, 'random-remind')
     print(f'\nEntries with "random-remind" action: {len(remind_entries)}')

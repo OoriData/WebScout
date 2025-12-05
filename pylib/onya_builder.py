@@ -10,8 +10,8 @@ import re
 
 from ogbujipt.llm.wrapper import prompt_to_chat
 
-from webscout.parser import LinkEntry
-from webscout.fetcher import FetchResult
+from ooriscout.parser import LinkEntry
+from ooriscout.fetcher import FetchResult
 
 
 def sanitize_node_id(url: str) -> str:

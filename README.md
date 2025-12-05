@@ -1,4 +1,4 @@
-Web Scout is a tool for monitoring and summarizing web content. It processes a links file (e.g., `links.md`) based on configurable rules, fetching content from each URL and generating reports with LLM-powered summaries and insights.
+Oori Web Scout is a tool for monitoring and summarizing web content. It processes a links file (e.g., `links.md`) based on configurable rules, fetching content from each URL and generating reports with LLM-powered summaries and insights.
 
 # Features
 

@@ -16,8 +16,8 @@ from datetime import datetime
 import wordloom
 from ogbujipt.llm.wrapper import prompt_to_chat  # , openai_chat_api
 
-from webscout.parser import LinkEntry
-from webscout.fetcher import FetchResult
+from ooriscout.parser import LinkEntry
+from ooriscout.fetcher import FetchResult
 
 
 def _format_llm_error(exception: Exception, action_context: str = '') -> str:
@@ -118,16 +118,16 @@ def _get_resource_path() -> Path:
     # Try using importlib.resources first (works for installed packages)
     try:
         import importlib.resources
-        with importlib.resources.path('webscout.resource', 'language.toml') as p:
+        with importlib.resources.path('ooriscout.resource', 'language.toml') as p:
             return Path(p)
     except (ModuleNotFoundError, TypeError, ValueError):
         pass
 
     # Fallback: try relative to package directory (for installed packages)
-    # In installed package, resources are at webscout/resource/language.toml
+    # In installed package, resources are at ooriscout/resource/language.toml
     try:
         import sys
-        package_module = sys.modules.get('webscout')
+        package_module = sys.modules.get('ooriscout')
         if package_module and hasattr(package_module, '__file__') and package_module.__file__:
             package_dir = Path(package_module.__file__).parent
             resource_path = package_dir / 'resource' / 'language.toml'

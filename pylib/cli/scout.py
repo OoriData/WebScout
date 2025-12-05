@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2025-present Oori Data <info@oori.dev>
 # SPDX-License-Identifier: Apache-2.0
-# webscout.cli.scout
+# ooriscout.cli.scout
 '''
 Web Scout - A tool for monitoring and summarizing web content.
 
@@ -30,11 +30,11 @@ import structlog
 
 from ogbujipt.llm.wrapper import openai_chat_api
 
-from webscout.parser import parse_links_file, filter_entries_by_tags
-from webscout.fetcher import create_fetcher  # , FetchResult
-from webscout.actions import ActionProcessor
-from webscout.onya_builder import build_onya_graph
-from webscout.report import generate_report
+from ooriscout.parser import parse_links_file, filter_entries_by_tags
+from ooriscout.fetcher import create_fetcher  # , FetchResult
+from ooriscout.actions import ActionProcessor
+from ooriscout.onya_builder import build_onya_graph
+from ooriscout.report import generate_report
 
 
 # Setup logging

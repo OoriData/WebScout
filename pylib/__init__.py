@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2025-present Oori Data <info@oori.dev>
 # SPDX-License-Identifier: Apache-2.0
-# webscout
+# ooriscout
 
 # ruff: noqa: F401,F403
 

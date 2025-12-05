@@ -4,7 +4,7 @@ Quick test of the fetcher functionality.
 '''
 
 import asyncio
-from webscout.fetcher import SimpleHttpFetcher
+from ooriscout.fetcher import SimpleHttpFetcher
 
 
 async def test_fetcher():

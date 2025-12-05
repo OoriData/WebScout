@@ -1,3 +1,4 @@
+# Note: webscout is taken on PyPI, so we publish as ooriscout
 name: Publish to PyPI
 
 on:

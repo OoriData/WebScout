@@ -8,9 +8,9 @@ from pathlib import Path
 from datetime import datetime
 from collections import defaultdict
 
-from webscout.parser import LinkEntry
-from webscout.actions import ActionResult
-from webscout.fetcher import FetchResult
+from ooriscout.parser import LinkEntry
+from ooriscout.actions import ActionResult
+from ooriscout.fetcher import FetchResult
 
 
 class ReportGenerator:

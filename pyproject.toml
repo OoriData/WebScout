@@ -3,7 +3,7 @@ requires = ['hatchling']
 build-backend = 'hatchling.build'
 
 [project]
-name = 'webscout'
+name = 'ooriscout'
 dynamic = ['version']
 description = 'A tool for monitoring and summarizing web content using LLMs'
 readme = 'README.md'
@@ -61,8 +61,8 @@ path = 'pylib/__about__.py'
 only-include = ['pylib', 'resource']
 
 [tool.hatch.build.targets.wheel.sources]
-'pylib' = 'webscout'
-'resource' = 'webscout/resource'
+'pylib' = 'ooriscout'
+'resource' = 'ooriscout/resource'
 
 [tool.hatch.build.targets.sdist]
 only-include = [
@@ -76,7 +76,7 @@ only-include = [
 ]
 
 [project.scripts]
-webscout = 'webscout.cli.scout:main'
+ooriscout = 'ooriscout.cli.scout:main'
 
 # Hatch environments config
 [tool.hatch.envs.default]
@@ -112,7 +112,7 @@ dependencies = [
     'ruff>=0.0.243',
 ]
 [tool.hatch.envs.lint.scripts]
-typing = 'mypy --install-types --non-interactive {args:pylib/webscout test}'
+typing = 'mypy --install-types --non-interactive {args:ooriscout test}'
 style = [
     'ruff {args:.}',
     'black --check --diff {args:.}',
@@ -152,7 +152,7 @@ lint.unfixable = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ['webscout']
+known-first-party = ['ooriscout']
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = 'all'
@@ -166,7 +166,7 @@ ban-relative-imports = 'all'
 '!pylib/**.py' = ['D']
 
 [tool.coverage.run]
-source_pkgs = ['webscout', 'test']
+source_pkgs = ['ooriscout', 'test']
 branch = true
 parallel = true
 omit = [
@@ -174,7 +174,7 @@ omit = [
 ]
 
 [tool.coverage.paths]
-webscout = ['pylib', '*/pylib']
+ooriscout = ['pylib', '*/pylib']
 test = ['test', '*/test']
 
 [tool.coverage.report]
