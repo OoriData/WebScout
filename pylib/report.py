@@ -7,6 +7,7 @@ Creates formatted reports from action results.
 from pathlib import Path
 from datetime import datetime
 from collections import defaultdict
+from typing import TextIO, Union
 
 from ooriscout.parser import LinkEntry
 from ooriscout.actions import ActionResult
@@ -18,14 +19,21 @@ class ReportGenerator:
     Generates formatted reports from web scout results.
     '''
 
-    def __init__(self, output_file: Path = None):
+    def __init__(self, output_file: Union[str, Path, TextIO] = None):
         '''
         Initialize the report generator.
 
         Args:
-            output_file: Path to output report file (optional, defaults to stdout)
+            output_file: Path to output report file (str/Path) or file-like object (TextIO).
+                         If None, report is only returned as string.
         '''
-        self.output_file = Path(output_file) if output_file else None
+        if output_file is None:
+            self.output_file = None
+        elif isinstance(output_file, (str, Path)):
+            self.output_file = Path(output_file)
+        else:
+            # Assume it's a file-like object
+            self.output_file = output_file
 
     def generate_report(self,
                        entries: list[LinkEntry],
@@ -79,9 +87,17 @@ class ReportGenerator:
 
         # Write to file if specified
         if self.output_file:
-            self.output_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.output_file, 'w', encoding='utf-8') as f:
-                f.write(report)
+            if isinstance(self.output_file, Path):
+                # It's a file path
+                self.output_file.parent.mkdir(parents=True, exist_ok=True)
+                with open(self.output_file, 'w', encoding='utf-8') as f:
+                    f.write(report)
+            else:
+                # It's a file-like object
+                self.output_file.write(report)
+                # Flush if possible
+                if hasattr(self.output_file, 'flush'):
+                    self.output_file.flush()
 
         return report
 
@@ -237,7 +253,7 @@ class ReportGenerator:
 def generate_report(entries: list[LinkEntry],
                    fetch_results: dict[str, FetchResult],
                    action_results: dict[str, list[ActionResult]],
-                   output_file: Path = None) -> str:
+                   output_file: Union[str, Path, TextIO] = None) -> str:
     '''
     Convenience function to generate a report.
 
@@ -245,7 +261,7 @@ def generate_report(entries: list[LinkEntry],
         entries: List of LinkEntry objects
         fetch_results: Dictionary mapping URLs to FetchResult objects
         action_results: Dictionary mapping action names to lists of ActionResult objects
-        output_file: Optional path to write report to
+        output_file: Optional path (str/Path) or file-like object (TextIO) to write report to
 
     Returns:
         Report as a string

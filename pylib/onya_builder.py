@@ -7,6 +7,7 @@ Creates .onya files representing the links and their content.
 from pathlib import Path
 from datetime import datetime
 import re
+from typing import TextIO, Union
 
 from ogbujipt.llm.wrapper import prompt_to_chat
 
@@ -69,38 +70,59 @@ class OnyaGraphBuilder:
 
     async def build_graph(self,
                          entries_with_results: list[tuple[LinkEntry, FetchResult]],
-                         output_file: Path,
-                         base_iri: str = 'http://webscout.example.org/pages/') -> Path:
+                         output_file: Union[str, Path, TextIO],
+                         base_iri: str = 'http://webscout.example.org/pages/') -> Union[Path, TextIO]:
         '''
         Build an Onya knowledge graph from link entries and their content.
 
         Args:
             entries_with_results: List of (LinkEntry, FetchResult) tuples
-            output_file: Path to output .onya file
+            output_file: Path to output .onya file (str/Path) or file-like object (TextIO)
             base_iri: Base IRI for the nodes
 
         Returns:
-            Path to the created .onya file
+            Path to the created .onya file (if Path) or the file-like object
         '''
-        output_file = Path(output_file)
-        output_file.parent.mkdir(parents=True, exist_ok=True)
+        # Handle file-like objects vs file paths
+        file_handle = None
+        output_path = None
+        
+        if isinstance(output_file, (str, Path)):
+            output_path = Path(output_file)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            file_handle = open(output_path, 'w', encoding='utf-8')
+            should_close = True
+        else:
+            # Assume it's a file-like object
+            file_handle = output_file
+            should_close = False
 
-        # Create document IRI from filename
-        doc_iri = f'{base_iri.rstrip("/")}/doc/{output_file.stem}'
+        try:
+            # Create document IRI from filename or default
+            if output_path:
+                doc_iri = f'{base_iri.rstrip("/")}/doc/{output_path.stem}'
+            else:
+                doc_iri = f'{base_iri.rstrip("/")}/doc/web_scout'
 
-        with open(output_file, 'w', encoding='utf-8') as f:
             # Write document header
-            f.write('# @docheader\n')
-            f.write(f'* @document: {doc_iri}\n')
-            f.write(f'* @base: {base_iri}\n')
-            f.write(f'* @created: {datetime.utcnow().isoformat()}\n')
-            f.write('\n')
+            file_handle.write('# @docheader\n')
+            file_handle.write(f'* @document: {doc_iri}\n')
+            file_handle.write(f'* @base: {base_iri}\n')
+            file_handle.write(f'* @created: {datetime.utcnow().isoformat()}\n')
+            file_handle.write('\n')
 
             # Write nodes for each entry
             for entry, fetch_result in entries_with_results:
-                await self._write_node(f, entry, fetch_result)
+                await self._write_node(file_handle, entry, fetch_result)
 
-        return output_file
+            # Flush if possible
+            if hasattr(file_handle, 'flush'):
+                file_handle.flush()
+
+            return output_path if output_path else file_handle
+        finally:
+            if should_close and file_handle:
+                file_handle.close()
 
     async def _write_node(self, f, entry: LinkEntry, fetch_result: FetchResult):
         '''Write a single node to the Onya file.'''
@@ -202,18 +224,18 @@ Provide only the summary, no preamble.'''
 
 
 async def build_onya_graph(entries_with_results: list[tuple[LinkEntry, FetchResult]],
-                          output_file: Path,
-                          llm_wrapper=None) -> Path:
+                          output_file: Union[str, Path, TextIO],
+                          llm_wrapper=None) -> Union[Path, TextIO]:
     '''
     Convenience function to build an Onya graph.
 
     Args:
         entries_with_results: List of (LinkEntry, FetchResult) tuples
-        output_file: Path to output .onya file
+        output_file: Path to output .onya file (str/Path) or file-like object (TextIO)
         llm_wrapper: Optional LLM wrapper for richer descriptions
 
     Returns:
-        Path to the created .onya file
+        Path to the created .onya file (if Path) or the file-like object
     '''
     builder = OnyaGraphBuilder(llm_wrapper)
     return await builder.build_graph(entries_with_results, output_file)

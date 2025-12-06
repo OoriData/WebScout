@@ -23,18 +23,10 @@ See README.md for more information.
 '''
 
 import asyncio
-import os
-from pathlib import Path
 import fire
 import structlog
 
-from ogbujipt.llm.wrapper import openai_chat_api
-
-from ooriscout.parser import parse_links_file, filter_entries_by_tags
-from ooriscout.fetcher import create_fetcher  # , FetchResult
-from ooriscout.actions import ActionProcessor
-from ooriscout.onya_builder import build_onya_graph
-from ooriscout.report import generate_report
+from ooriscout.main import run_scout
 
 
 # Setup logging
@@ -95,140 +87,65 @@ async def _async_scout(links_file: str,
                    focus_tags: str,
                    exclude_tags: str,
                    verbose: bool):
-    '''Async implementation of scout command.'''
+    '''Async implementation of scout command - thin wrapper around library function.'''
+    from pathlib import Path
+    
     # Setup paths
-    links_path = Path(links_file)
     output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
-
-    cache_dir = output_path / 'cache'
-    cache_dir.mkdir(exist_ok=True)
-
-    if verbose:
-        logger.info('starting_web_scout',
-                   links_file=str(links_path),
-                   output_dir=str(output_path))
-
-    # Parse links file
-    logger.info('parsing_links_file', path=str(links_path))
-    entries = parse_links_file(str(links_path))
-    logger.info('parsed_links', count=len(entries))
-
-    # Filter by tags if specified
-    if focus_tags or exclude_tags:
-        include_list = [t.strip() for t in focus_tags.split(',')] if focus_tags else None
-        exclude_list = [t.strip() for t in exclude_tags.split(',')] if exclude_tags else None
-        entries = filter_entries_by_tags(entries, include_list, exclude_list)
-        logger.info('filtered_by_tags', count=len(entries))
-
-    if not entries:
-        logger.warning('no_entries_to_process')
-        print('No entries to process. Check your links file and tag filters.')
-        return
-
-    # Setup LLM
-    llm_url = llm_url or os.environ.get('OPENAI_API_BASE')
-    llm_api_key = llm_api_key or os.environ.get('OPENAI_API_KEY')
-
-    if not llm_url:
-        logger.error('no_llm_url_provided')
-        print('Error: LLM URL not provided. Set --llm-url or OPENAI_API_BASE env var.')
-        return
-
-    logger.info('initializing_llm', url=llm_url, model=llm_model)
-    llm = openai_chat_api(
-        model=llm_model,
-        base_url=llm_url,
-        api_key=llm_api_key
-    )
-
-    # Setup web fetcher
-    logger.info('initializing_fetcher', type=fetcher)
-    if fetcher == 'crawl4ai':
-        web_fetcher = create_fetcher('crawl4ai', base_url=crawl4ai_url)
-    elif fetcher == 'fallback':
-        web_fetcher = create_fetcher('fallback')
-    else:
-        web_fetcher = create_fetcher('simple')
-
-    # Fetch all links
-    logger.info('fetching_links', count=len(entries))
-    print(f'Fetching {len(entries)} links...')
-
-    fetch_results = {}
-    entries_with_results = []
-
-    for i, entry in enumerate(entries, 1):
-        if verbose:
-            print(f'  [{i}/{len(entries)}] Fetching: {entry.url}')
-        else:
-            print('.', end='', flush=True)
-
-        result = await web_fetcher.fetch(entry.url)
-        fetch_results[entry.url] = result
-        entries_with_results.append((entry, result))
-
-        if not verbose:
-            if i % 50 == 0:
-                print(f' {i}', flush=True)
-
-    if not verbose:
-        print()  # Newline after progress dots
-
-    # Count successes
-    success_count = sum(1 for r in fetch_results.values() if r.success)
-    logger.info('fetch_complete', success=success_count, failed=len(entries) - success_count)
-    print(f'Fetched {success_count}/{len(entries)} pages successfully.')
-
-    # Process actions
-    logger.info('processing_actions')
-    print('Processing actions...')
-
-    action_processor = ActionProcessor(
-        llm_wrapper=llm,
-        cache_dir=cache_dir,
-        random_remind_count=random_remind_count
-    )
-
-    action_results = await action_processor.process_all(entries_with_results)
-
-    # Count results
-    for action, results in action_results.items():
-        count = len(results)
-        logger.info('action_processed', action=action, count=count)
-
-    # Generate Onya graph
-    logger.info('generating_onya_graph')
-    print('Generating Onya knowledge graph...')
-
-    onya_file = output_path / 'web_scout.onya'
-    await build_onya_graph(
-        entries_with_results=entries_with_results,
-        output_file=onya_file,
-        llm_wrapper=llm
-    )
-    logger.info('onya_graph_created', path=str(onya_file))
-    print(f'Onya graph saved to: {onya_file}')
-
-    # Generate report
-    logger.info('generating_report')
-    print('Generating report...')
-
     report_file = output_path / 'report.txt'
-    report = generate_report(
-        entries=entries,
-        fetch_results=fetch_results,
-        action_results=action_results,
-        output_file=report_file
-    )
+    onya_file = output_path / 'web_scout.onya'
 
-    logger.info('report_created', path=str(report_file))
-    print(f'Report saved to: {report_file}')
-    print()
-    print('=' * 80)
-    print(report)
+    try:
+        # Call the core library function
+        results = await run_scout(
+            links_input=links_file,
+            output_dir=output_dir,
+            llm_url=llm_url,
+            llm_model=llm_model,
+            llm_api_key=llm_api_key,
+            fetcher=fetcher,
+            crawl4ai_url=crawl4ai_url,
+            random_remind_count=random_remind_count,
+            focus_tags=focus_tags,
+            exclude_tags=exclude_tags,
+            report_output=report_file,
+            onya_output=onya_file,
+            logger=logger,
+            verbose=verbose
+        )
 
-    logger.info('web_scout_complete')
+        # Handle empty results
+        if not results['entries']:
+            print('No entries to process. Check your links file and tag filters.')
+            return
+
+        # Print CLI-friendly output
+        success_count = sum(1 for r in results['fetch_results'].values() if r.success)
+        print(f'Fetched {success_count}/{len(results["entries"])} pages successfully.')
+        print('Processing actions...')
+        
+        for action, action_results in results['action_results'].items():
+            count = len(action_results)
+            print(f'  Processed {count} {action} action(s)')
+
+        print('Generating Onya knowledge graph...')
+        onya_path = results['onya_path']
+        if isinstance(onya_path, Path):
+            print(f'Onya graph saved to: {onya_path}')
+        else:
+            print('Onya graph written to provided output.')
+
+        print('Generating report...')
+        print(f'Report saved to: {report_file}')
+        print()
+        print('=' * 80)
+        print(results['report'])
+
+    except ValueError as e:
+        # Handle validation errors (e.g., missing LLM URL)
+        logger.error('scout_error', error=str(e))
+        print(f'Error: {e}')
+        return
 
 
 def main():

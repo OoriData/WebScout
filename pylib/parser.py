@@ -14,6 +14,8 @@ The format is:
 
 import re
 from dataclasses import dataclass, field
+from typing import TextIO
+from pathlib import Path
 
 
 @dataclass
@@ -36,18 +38,27 @@ class LinkEntry:
             self.tags = [tag.strip() for tag in re.split(r'[|\s]+', self.tags) if tag.strip()]
 
 
-def parse_links_file(file_path: str) -> list[LinkEntry]:
+def parse_links_file(file_input: str | Path | TextIO) -> list[LinkEntry]:
     '''
     Parse a links file into structured LinkEntry objects.
 
     Args:
-        file_path: Path to the links.md file
+        file_input: Path to the links.md file (str/Path) or file-like object (TextIO)
 
     Returns:
         List of LinkEntry objects
     '''
-    with open(file_path, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
+    # Handle file-like objects vs file paths
+    if hasattr(file_input, 'read'):
+        # It's a file-like object
+        lines = file_input.readlines()
+        # Reset file pointer if possible (for re-reading)
+        if hasattr(file_input, 'seek'):
+            file_input.seek(0)
+    else:
+        # It's a file path
+        with open(file_input, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
 
     entries = []
     current_entry = None
